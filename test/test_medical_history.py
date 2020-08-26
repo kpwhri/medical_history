@@ -10,4 +10,4 @@ def test_medical_history(text):
     flags, data = get_medical_history(text, 'pcos', 'polycystic ovarian')
     assert len(flags) == 1
     assert flags[0] == MedicalHistoryFlag.PERSONAL
-    assert data == ('medical history', 'pcos')
+    assert data == ('pcos', 'medical history')
