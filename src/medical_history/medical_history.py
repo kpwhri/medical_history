@@ -29,7 +29,31 @@ MEDICAL_HISTORY_TERMS = {
 
 RELATIVES = {
     'mother': MedicalHistoryFlag.DEGREE1,
+    'mom': MedicalHistoryFlag.DEGREE1,
     'father': MedicalHistoryFlag.DEGREE1,
+    'dad': MedicalHistoryFlag.DEGREE1,
+    'brother': MedicalHistoryFlag.DEGREE1,
+    'sister': MedicalHistoryFlag.DEGREE1,
+    'sibling': MedicalHistoryFlag.DEGREE1,
+    'siblings': MedicalHistoryFlag.DEGREE1,
+    'grandfather': MedicalHistoryFlag.DEGREE2,
+    'grandpa': MedicalHistoryFlag.DEGREE2,
+    'grandmother': MedicalHistoryFlag.DEGREE2,
+    'grandma': MedicalHistoryFlag.DEGREE2,
+    'grandparent': MedicalHistoryFlag.DEGREE2,
+    'grandparents': MedicalHistoryFlag.DEGREE2,
+    'aunt': MedicalHistoryFlag.DEGREE2,
+    'uncle': MedicalHistoryFlag.DEGREE2,
+    'niece': MedicalHistoryFlag.DEGREE2,
+    'nephew': MedicalHistoryFlag.DEGREE2,
+    'half-brother': MedicalHistoryFlag.DEGREE2,
+    'half brother': MedicalHistoryFlag.DEGREE2,
+    'half-sister': MedicalHistoryFlag.DEGREE2,
+    'half sister': MedicalHistoryFlag.DEGREE2,
+    'half-sibling': MedicalHistoryFlag.DEGREE2,
+    'half sibling': MedicalHistoryFlag.DEGREE2,
+    'half-siblings': MedicalHistoryFlag.DEGREE2,
+    'half siblings': MedicalHistoryFlag.DEGREE2,
 }
 
 NEGATE = {  # how to negate all the flags
@@ -82,6 +106,16 @@ def relhist_results(m, span, label, match):
     return label, [m.group().lower(), match]
 
 
+def _contains_separators(text, seps, max_count=0):
+    cnt = 0
+    for sep in seps:
+        if sep in text:
+            cnt += 1
+            if cnt > max_count:
+                return True
+    return False
+
+
 def get_medical_history(text, *targets):
     results = []
     data = []
@@ -96,7 +130,7 @@ def get_medical_history(text, *targets):
         for start, end, match, label in medhist:
             if start > m.end():  # medical history should not occur after
                 continue
-            if '.' in text[end + 2: m.start()] or ':' in text[end + 2: m.start()]:
+            if _contains_separators(text[end + 2: m.start()], '.:;'):
                 continue
             results.append(label)
             data += [m.group().lower(), match]
