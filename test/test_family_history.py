@@ -7,7 +7,11 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
     ('family history includes PCOS in her mother',
      (MedicalHistoryFlag.DEGREE1, MedicalHistoryFlag.FAMILY),
      ('pcos', 'mother', 'family history'),
-     )
+     ),
+    ('father does not have pcos (obviously)',
+     (MedicalHistoryFlag.DEGREE1_NEG,),
+     ('pcos', 'father', 'not'),
+     ),
 ])
 def test_family_history(text, exp_flags, exp_data):
     flags, data = get_medical_history(text, 'pcos', 'polycystic ovarian')

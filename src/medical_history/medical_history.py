@@ -78,7 +78,7 @@ def _span_is_negated(span):
 
 def relhist_results(m, span, label, match):
     if neg := _span_is_negated(span):
-        return NEGATE[label], [m.group().lower(), match, neg.group()]
+        return NEGATE[label], [m.group().lower(), match, neg]
     return label, [m.group().lower(), match]
 
 
@@ -90,7 +90,7 @@ def get_medical_history(text, *targets):
         return (MedicalHistoryFlag.UNKNOWN,), term
     medhist = list(extract_medical_history_terms(text))
     relhist = list(extract_relatives(text))
-    if not medhist:
+    if not medhist and not relhist:
         return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
     for m in target_pat.finditer(text):
         for start, end, match, label in medhist:
