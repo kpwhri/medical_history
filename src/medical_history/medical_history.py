@@ -20,11 +20,16 @@ class MedicalHistoryFlag(Enum):
 
 MEDICAL_HISTORY_TERMS = {
     'medical history': MedicalHistoryFlag.PERSONAL,
+    'history of': MedicalHistoryFlag.PERSONAL,
+    'hx of': MedicalHistoryFlag.PERSONAL,
     'no medical history': MedicalHistoryFlag.NEGATED,
+    'no significant medical history': MedicalHistoryFlag.NEGATED,
     'family history': MedicalHistoryFlag.FAMILY,
+    'significant family history': MedicalHistoryFlag.FAMILY,
     'family medical history': MedicalHistoryFlag.FAMILY,
     'no family history': MedicalHistoryFlag.FAMILY_NEG,
-    'no family medical history': MedicalHistoryFlag.FAMILY_NEG,
+    'no significant family history': MedicalHistoryFlag.FAMILY_NEG,
+    'no significant family medical history': MedicalHistoryFlag.FAMILY_NEG,
 }
 
 RELATIVES = {
@@ -132,19 +137,29 @@ def get_medical_history(text, *targets):
                 continue
             if _contains_separators(text[end + 2: m.start()], '.:;'):
                 continue
-            results.append(label)
-            data += [m.group().lower(), match]
+            if neg := _span_is_negated(text[start - 10:start]):
+                results.append(NEGATE[label])
+                data += [m.group().lower(), match, neg]
+            else:
+                results.append(label)
+                data += [m.group().lower(), match]
         for start, end, match, label in relhist:
             if end < m.start():
                 if m.start() - end > 100:
                     continue
                 result, datum = relhist_results(m, text[end:m.start()], label, match)
+                if neg := _span_is_negated(text[start - 10:start]):
+                    result = NEGATE[result]
+                    datum.append(neg)
                 results.append(result)
                 data += datum
             else:
                 if start - m.end() > 100:
                     continue
                 result, datum = relhist_results(m, text[m.end():start], label, match)
+                if neg := _span_is_negated(text[m.start() - 10:m.start()]):
+                    result = NEGATE[result]
+                    datum.append(neg)
                 results.append(result)
                 data += datum
 
