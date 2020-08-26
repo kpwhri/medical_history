@@ -8,5 +8,5 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
 ])
 def test_no_medical_history(text):
     flag, data = get_medical_history(text, 'pcos', 'polycystic')
-    assert flag == MedicalHistoryFlag.NEGATED
+    assert flag == MedicalHistoryFlag.UNKNOWN
     assert data == 'no past medical history'

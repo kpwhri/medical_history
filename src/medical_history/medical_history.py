@@ -16,4 +16,4 @@ def is_negated(text):
 
 def get_medical_history(text, *targets):
     if term := is_negated(text):
-        return MedicalHistoryFlag.NEGATED, term
+        return MedicalHistoryFlag.UNKNOWN, term
