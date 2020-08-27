@@ -116,7 +116,7 @@ def is_negated(text):
 
 
 def _extract_terms(text, d):
-    pat = re.compile('|'.join(d.keys()), re.ENHANCEMATCH | re.I)
+    pat = re.compile(rf'({"|".join(d.keys())})', re.ENHANCEMATCH | re.I)
     for m in pat.finditer(text):
         match = ' '.join(m.group().lower().split())
         yield m.start(), m.end(), match, d[match]
@@ -156,7 +156,7 @@ def _contains_separators(text, seps, max_count=0):
 def get_medical_history(text, *targets):
     results = []
     data = []
-    target_pat = re.compile(f'({"|".join(targets)})', re.I)
+    target_pat = re.compile(fr'\b({"|".join(targets)})\b', re.I)
     # if term := is_negated(text):
     #     return (MedicalHistoryFlag.UNKNOWN,), term
     medhist = list(extract_medical_history_terms(text))
