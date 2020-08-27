@@ -12,6 +12,10 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      MedicalHistoryFlag.NEGATED,
      ('pcos', 'history of', 'not'),
      ),
+    ('has hx of polycystic ovarian synd',
+     MedicalHistoryFlag.PERSONAL,
+     ('polycystic ovarian', 'hx of'),
+     ),
 ])
 def test_medical_history(text, exp_flag, exp_data):
     flags, data = get_medical_history(text, 'pcos', 'polycystic ovarian')
