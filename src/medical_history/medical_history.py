@@ -139,7 +139,7 @@ def get_medical_history(text, *targets):
         for start, end, match, label in medhist:
             if start > m.end():  # medical history should not occur after
                 continue
-            if _contains_separators(text[end + 2: m.start()], '.:;'):
+            if _contains_separators(text[end + 2: m.start()], '.:;•*'):
                 continue
             if neg := _span_is_negated(text[start - 10:start]):
                 results.append(NEGATE[label])
