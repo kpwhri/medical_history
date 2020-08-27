@@ -27,3 +27,17 @@ def test_personal_history_section():
     results, data = get_medical_history(text, 'pcos')
     assert results == (MedicalHistoryFlag.PERSONAL,)
     assert data == ('pcos', 'past medical history:')
+
+
+def test_ignore_assessment():
+    text = 'Assessment: family history of pcos'
+    results, data = get_medical_history(text, 'pcos')
+    assert results == (MedicalHistoryFlag.UNKNOWN,)
+    assert data == ()
+
+
+def test_ignore_problem_list():
+    text = 'Problem List: PCOS Mother of same blood type'
+    results, data = get_medical_history(text, 'pcos')
+    assert results == (MedicalHistoryFlag.UNKNOWN,)
+    assert data == ()

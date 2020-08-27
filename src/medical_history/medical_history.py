@@ -12,6 +12,7 @@ class Sectioner:
         r'past medical history'
         r'|family history indicates'
         r'|past surgical history'
+        r'|problem list'
         r'|[a-z\-]+'
         r')\s?:', re.I
     )
@@ -165,6 +166,9 @@ def get_medical_history(text, *targets):
     if not medhist and not relhist:
         return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
     for m in target_pat.finditer(text):
+        section = sectioner.get_section(m.start())
+        if section and 'problem list' in section or section in ['assessment:']:
+            continue
         for start, end, match, label in medhist:
             if start > m.end():  # medical history should not occur after
                 continue
@@ -199,7 +203,7 @@ def get_medical_history(text, *targets):
             results.append(result)
             data += datum
         # determine if in medical history section
-        if section := sectioner.get_section(m.start()):
+        if section:
             if 'family history' in section:
                 results.append(MedicalHistoryFlag.FAMILY)
                 data += [m.group().lower(), section]
