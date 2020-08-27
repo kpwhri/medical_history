@@ -4,6 +4,32 @@ from regexify import Pattern
 import regex as re
 
 
+class Sectioner:
+    """What section are we in?"""
+
+    SECTION_RX = re.compile(
+        r'('
+        r'past medical history'
+        r'|family history indicates'
+        r'|past surgical history'
+        r'|[a-z\-]+'
+        r')\s?:', re.I
+    )
+
+    def __init__(self, text):
+        self.sections = []
+        for m in self.SECTION_RX.finditer(text):
+            if m.group().lower() == 'comment:':
+                continue
+            self.sections.append((m.start(), m.group()))
+        self.sections.reverse()
+
+    def get_section(self, index):
+        for idx, label in self.sections:
+            if index > idx:
+                return label.lower()
+
+
 class MedicalHistoryFlag(Enum):
     UNKNOWN = 0
     NEGATED = 1
@@ -38,6 +64,8 @@ MEDICAL_HISTORY_TERMS = {
 
 RELATIVES = {
     'mother': MedicalHistoryFlag.DEGREE1,
+    'daughter': MedicalHistoryFlag.DEGREE1,
+    'son': MedicalHistoryFlag.DEGREE1,
     'mom': MedicalHistoryFlag.DEGREE1,
     'father': MedicalHistoryFlag.DEGREE1,
     'dad': MedicalHistoryFlag.DEGREE1,
@@ -133,6 +161,7 @@ def get_medical_history(text, *targets):
     #     return (MedicalHistoryFlag.UNKNOWN,), term
     medhist = list(extract_medical_history_terms(text))
     relhist = list(extract_relatives(text))
+    sectioner = Sectioner(text)
     if not medhist and not relhist:
         return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
     for m in target_pat.finditer(text):
@@ -147,6 +176,7 @@ def get_medical_history(text, *targets):
             else:
                 results.append(label)
                 data += [m.group().lower(), match]
+        relatives = []
         for start, end, match, label in relhist:
             if end < m.start():
                 if m.start() - end > 100:
@@ -155,8 +185,7 @@ def get_medical_history(text, *targets):
                 if neg := _span_is_negated(text[start - 10:start]):
                     result = NEGATE[result]
                     datum.append(neg)
-                results.append(result)
-                data += datum
+                relatives.append((result, datum, m.start() - end, 1))
             else:
                 if start - m.end() > 100:
                     continue
@@ -164,8 +193,19 @@ def get_medical_history(text, *targets):
                 if neg := _span_is_negated(text[m.start() - 10:m.start()]):
                     result = NEGATE[result]
                     datum.append(neg)
-                results.append(result)
-                data += datum
+                relatives.append((result, datum, m.start() - end, 0))
+        if relatives:
+            result, datum = sorted(relatives, key=lambda x: (x[2], x[3]))[0][:2]
+            results.append(result)
+            data += datum
+        # determine if in medical history section
+        if section := sectioner.get_section(m.start()):
+            if 'family history' in section:
+                results.append(MedicalHistoryFlag.FAMILY)
+                data += [m.group().lower(), section]
+            if 'medical history' in section:
+                results.append(MedicalHistoryFlag.PERSONAL)
+                data += [m.group().lower(), section]
 
     if results:
         return tuple(results), tuple(data)

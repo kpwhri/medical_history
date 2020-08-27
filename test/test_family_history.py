@@ -12,7 +12,7 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      (MedicalHistoryFlag.DEGREE1_NEG,),
      ('pcos', 'father', 'not'),
      ),
-    ('patient\'s family history indicates: PCOS Sister',
+    ('PCOS Sister',
      (MedicalHistoryFlag.DEGREE1,),
      ('pcos', 'sister'),
      ),
