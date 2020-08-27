@@ -16,6 +16,14 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      MedicalHistoryFlag.PERSONAL,
      ('polycystic ovarian', 'hx of'),
      ),
+    ('Past Medical History : PCOS',
+     MedicalHistoryFlag.PERSONAL,
+     ('pcos', 'medical history'),
+     ),
+    ('No Medical History of PCOS',
+     MedicalHistoryFlag.NEGATED,
+     ('pcos', 'no medical history'),
+     ),
 ])
 def test_medical_history(text, exp_flag, exp_data):
     flags, data = get_medical_history(text, 'pcos', 'polycystic ovarian')

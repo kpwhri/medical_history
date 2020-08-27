@@ -21,6 +21,7 @@ class MedicalHistoryFlag(Enum):
 MEDICAL_HISTORY_TERMS = {
     'medical history': MedicalHistoryFlag.PERSONAL,
     'history of': MedicalHistoryFlag.PERSONAL,
+    'history': MedicalHistoryFlag.PERSONAL,
     'hx of': MedicalHistoryFlag.PERSONAL,
     'hx': MedicalHistoryFlag.PERSONAL,
     'no medical history': MedicalHistoryFlag.NEGATED,
@@ -87,8 +88,8 @@ def is_negated(text):
 
 
 def _extract_terms(text, d):
-    medhist_pat = re.compile('|'.join(d.keys()), re.BESTMATCH | re.I)
-    for m in medhist_pat.finditer(text):
+    pat = re.compile('|'.join(d.keys()), re.ENHANCEMATCH | re.I)
+    for m in pat.finditer(text):
         match = ' '.join(m.group().lower().split())
         yield m.start(), m.end(), match, d[match]
 
@@ -128,8 +129,8 @@ def get_medical_history(text, *targets):
     results = []
     data = []
     target_pat = re.compile(f'({"|".join(targets)})', re.I)
-    if term := is_negated(text):
-        return (MedicalHistoryFlag.UNKNOWN,), term
+    # if term := is_negated(text):
+    #     return (MedicalHistoryFlag.UNKNOWN,), term
     medhist = list(extract_medical_history_terms(text))
     relhist = list(extract_relatives(text))
     if not medhist and not relhist:
