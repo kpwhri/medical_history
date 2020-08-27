@@ -1,5 +1,5 @@
 
-from medical_history.medical_history import get_medical_history, MedicalHistoryFlag
+from medical_history.medical_history import get_medical_history, MedicalHistoryFlag, extract_relatives
 
 
 def test_separators():
@@ -8,3 +8,8 @@ def test_separators():
     assert len(flags) == 1
     assert flags[0] == MedicalHistoryFlag.UNKNOWN
     assert len(data) == 0
+
+
+def test_does_not_match_internal():
+    text = 'comparison'  # son should not be found
+    assert len(list(extract_relatives(text))) == 0

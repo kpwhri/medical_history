@@ -116,7 +116,7 @@ def is_negated(text):
 
 
 def _extract_terms(text, d):
-    pat = re.compile(rf'({"|".join(d.keys())})', re.ENHANCEMATCH | re.I)
+    pat = re.compile(rf'\b({"|".join(d.keys())})\b', re.ENHANCEMATCH | re.I)
     for m in pat.finditer(text):
         match = ' '.join(m.group().lower().split())
         yield m.start(), m.end(), match, d[match]
