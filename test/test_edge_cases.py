@@ -20,3 +20,11 @@ def test_period_as_immediate_divider():
     assert len(flags) == 1
     assert flags[0] == MedicalHistoryFlag.UNKNOWN
     assert len(data) == 0
+
+
+def test_read_about():
+    text = 'Aunt read about pcos'
+    flags, data = get_medical_history(text, 'pcos')
+    assert len(flags) == 1
+    assert flags[0] == MedicalHistoryFlag.UNKNOWN
+    assert len(data) == 0

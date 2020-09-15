@@ -156,6 +156,13 @@ def _span_is_negated(span):
     return None
 
 
+def _span_is_not_relevant(span):
+    pat = re.compile(r'\b(about)\b', re.I)
+    if m := pat.search(span):
+        return m.group().lower()
+    return None
+
+
 def relhist_results(m, span, label, match):
     if neg := _span_is_negated(span):
         return NEGATE[label], [m.group().lower(), match, neg]
@@ -190,7 +197,11 @@ def get_medical_history(text, *targets):
         for start, end, match, label in medhist:
             if start > m.end():  # medical history should not occur after
                 continue
-            if _contains_separators(text[end + 2: m.start()], '.:;•*'):
+            if _contains_separators(text[end: m.start()], '.'):
+                continue
+            if _contains_separators(text[end + 2: m.start()], ':;•*'):
+                continue
+            if _span_is_not_relevant(text[end: m.start()]):
                 continue
             if neg := _span_is_negated(text[start - 10:start]):
                 results.append(NEGATE[label])
@@ -207,6 +218,8 @@ def get_medical_history(text, *targets):
                     continue
                 if _contains_separators(text[end + 2: m.start()], ':;•*'):
                     continue
+                if _span_is_not_relevant(text[end: m.start()]):
+                    continue
                 result, datum = relhist_results(m, text[end:m.start()], label, match)
                 if neg := _span_is_negated(text[start - 10:start]):
                     result = NEGATE[result]
@@ -218,6 +231,8 @@ def get_medical_history(text, *targets):
                 if _contains_separators(text[m.end(): start], '.'):
                     continue
                 if _contains_separators(text[m.end() + 2: start], ':;•*'):
+                    continue
+                if _span_is_not_relevant(text[m.end(): start]):
                     continue
                 result, datum = relhist_results(m, text[m.end():start], label, match)
                 if neg := _span_is_negated(text[m.start() - 10:m.start()]):
