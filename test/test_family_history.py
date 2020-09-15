@@ -24,6 +24,10 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      (MedicalHistoryFlag.DEGREE2, MedicalHistoryFlag.PERSONAL),  # PERSONAL is not correct
      ('polycystic ovaries', 'aunt', 'history of'),
      ),
+    ('No FH of PCOS',
+     (MedicalHistoryFlag.FAMILY_NEG,),
+     ('no fh', 'pcos'),
+     ),
 ])
 def test_family_history(text, exp_flags, exp_data):
     flags, data = get_medical_history(text, 'pcos', r'polycystic ovar\w+')

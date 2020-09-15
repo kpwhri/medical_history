@@ -59,6 +59,8 @@ MEDICAL_HISTORY_TERMS = {
     'famhx': MedicalHistoryFlag.FAMILY,
     'family hx': MedicalHistoryFlag.FAMILY,
     'no family history': MedicalHistoryFlag.FAMILY_NEG,
+    'fh of': MedicalHistoryFlag.FAMILY,
+    'no fh': MedicalHistoryFlag.FAMILY_NEG,
     'no significant family history': MedicalHistoryFlag.FAMILY_NEG,
     'no significant family medical history': MedicalHistoryFlag.FAMILY_NEG,
 }
@@ -157,7 +159,7 @@ def _span_is_negated(span):
 
 
 def _span_is_not_relevant(span):
-    pat = re.compile(r'\b(about)\b', re.I)
+    pat = re.compile(r'\b(about|but)\b', re.I)
     if m := pat.search(span):
         return m.group().lower()
     return None
