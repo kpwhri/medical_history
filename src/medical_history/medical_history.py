@@ -203,7 +203,9 @@ def get_medical_history(text, *targets):
             if end < m.start():
                 if m.start() - end > 100:
                     continue
-                if _contains_separators(text[end + 2: m.start()], '.:;•*'):
+                if _contains_separators(text[end: m.start()], '.'):
+                    continue
+                if _contains_separators(text[end + 2: m.start()], ':;•*'):
                     continue
                 result, datum = relhist_results(m, text[end:m.start()], label, match)
                 if neg := _span_is_negated(text[start - 10:start]):
@@ -213,7 +215,9 @@ def get_medical_history(text, *targets):
             else:
                 if start - m.end() > 100:
                     continue
-                if _contains_separators(text[m.end() + 2: start], '.:;•*'):
+                if _contains_separators(text[m.end(): start], '.'):
+                    continue
+                if _contains_separators(text[m.end() + 2: start], ':;•*'):
                     continue
                 result, datum = relhist_results(m, text[m.end():start], label, match)
                 if neg := _span_is_negated(text[m.start() - 10:m.start()]):

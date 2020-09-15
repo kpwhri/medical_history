@@ -41,3 +41,10 @@ def test_ignore_problem_list():
     results, data = get_medical_history(text, 'pcos')
     assert results == (MedicalHistoryFlag.UNKNOWN,)
     assert data == ()
+
+
+"""
+Review of patient\'s family history indicates:    Other Mother    Comment: PCOS    Other Sister    Comment: PCOS    
+Diabetes No History    Breast CA (mother,sister,aunt) No History    Cancer, Other No History      
+Other significant family history - none
+"""
