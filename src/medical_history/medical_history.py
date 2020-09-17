@@ -10,9 +10,10 @@ class Sectioner:
     SECTION_RX = re.compile(
         r'('
         r'past medical history'
-        r'|family history indicates'
+        r'|family history (indicates|includes)'
         r'|past surgical history'
         r'|problem list'
+        r'|family history'
         r'|[a-z\-]+'
         r')\s?:', re.I
     )
@@ -29,6 +30,7 @@ class Sectioner:
         for idx, label in self.sections:
             if index > idx:
                 return label.lower()
+        return ''
 
 
 class MedicalHistoryFlag(Enum):
@@ -193,10 +195,48 @@ def get_medical_history(text, *targets):
     if not medhist and not relhist:
         return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
     for m in target_pat.finditer(text):
-        section = sectioner.get_section(m.start())
+        section = sectioner.get_section(m.start()).lower()
         if section and 'problem list' in section or section in ['assessment:']:
             continue
+        relatives = []
+        if 'family history' in section or 'history' not in section:
+            for start, end, match, label in relhist:
+                if end < m.start():
+                    if m.start() - end > 100:
+                        continue
+                    if _contains_separators(text[end: m.start()], '.'):
+                        continue
+                    if _contains_separators(text[end + 2: m.start()], ';•*'):
+                        continue
+                    if _span_is_not_relevant(text[end: m.start()]):
+                        continue
+                    result, datum = relhist_results(m, text[end:m.start()], label, match)
+                    if neg := _span_is_negated(text[start - 10:start]):
+                        result = NEGATE[result]
+                        datum.append(neg)
+                    relatives.append((result, datum, m.start() - end, 1))
+                else:
+                    if start - m.end() > 100:
+                        continue
+                    if _contains_separators(text[m.end(): start], '.'):
+                        continue
+                    if _contains_separators(text[m.end() + 2: start], ':;•*'):
+                        continue
+                    if _span_is_not_relevant(text[m.end(): start]):
+                        continue
+                    result, datum = relhist_results(m, text[m.end():start], label, match)
+                    if neg := _span_is_negated(text[m.start() - 10:m.start()]):
+                        result = NEGATE[result]
+                        datum.append(neg)
+                    relatives.append((result, datum, m.start() - end, 0))
+        if relatives:
+            result, datum = sorted(relatives, key=lambda x: (x[2], x[3]))[0][:2]
+            results.append(result)
+            data += datum
+        not_fam_hx_section = 'family history' not in section and not relatives
         for start, end, match, label in medhist:
+            if not not_fam_hx_section and label != MedicalHistoryFlag.FAMILY:
+                continue
             if start > m.end():  # medical history should not occur after
                 continue
             if _contains_separators(text[end: m.start()], '.'):
@@ -211,40 +251,6 @@ def get_medical_history(text, *targets):
             else:
                 results.append(label)
                 data += [m.group().lower(), match]
-        relatives = []
-        for start, end, match, label in relhist:
-            if end < m.start():
-                if m.start() - end > 100:
-                    continue
-                if _contains_separators(text[end: m.start()], '.'):
-                    continue
-                if _contains_separators(text[end + 2: m.start()], ':;•*'):
-                    continue
-                if _span_is_not_relevant(text[end: m.start()]):
-                    continue
-                result, datum = relhist_results(m, text[end:m.start()], label, match)
-                if neg := _span_is_negated(text[start - 10:start]):
-                    result = NEGATE[result]
-                    datum.append(neg)
-                relatives.append((result, datum, m.start() - end, 1))
-            else:
-                if start - m.end() > 100:
-                    continue
-                if _contains_separators(text[m.end(): start], '.'):
-                    continue
-                if _contains_separators(text[m.end() + 2: start], ':;•*'):
-                    continue
-                if _span_is_not_relevant(text[m.end(): start]):
-                    continue
-                result, datum = relhist_results(m, text[m.end():start], label, match)
-                if neg := _span_is_negated(text[m.start() - 10:m.start()]):
-                    result = NEGATE[result]
-                    datum.append(neg)
-                relatives.append((result, datum, m.start() - end, 0))
-        if relatives:
-            result, datum = sorted(relatives, key=lambda x: (x[2], x[3]))[0][:2]
-            results.append(result)
-            data += datum
         # determine if in medical history section
         if section:
             if 'family history' in section:

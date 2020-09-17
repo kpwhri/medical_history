@@ -21,16 +21,23 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      ('pcos', 'no family history'),
      ),
     ('patient\'s aunt does have history of polycystic ovaries',
-     (MedicalHistoryFlag.DEGREE2, MedicalHistoryFlag.PERSONAL),  # PERSONAL is not correct
-     ('polycystic ovaries', 'aunt', 'history of'),
+     (MedicalHistoryFlag.DEGREE2,),
+     ('polycystic ovaries', 'aunt'),
      ),
     ('No FH of PCOS',
      (MedicalHistoryFlag.FAMILY_NEG,),
      ('no fh', 'pcos'),
      ),
+    ('Family History : History of poly cystic ovarian',
+     (MedicalHistoryFlag.FAMILY,),
+     ('poly cystic ovarian', 'family history :', 'family history'),
+     ),
+    ('Mother with history of PCOS',
+     (MedicalHistoryFlag.DEGREE1,),
+     ('mother', 'pcos'),
+     ),
 ])
 def test_family_history(text, exp_flags, exp_data):
-    flags, data = get_medical_history(text, 'pcos', r'polycystic ovar\w+')
-    assert len(flags) == len(exp_flags)
+    flags, data = get_medical_history(text, 'pcos', r'poly\s*cystic ovar\w+')
     assert set(flags) == set(exp_flags)
     assert set(data) == set(exp_data)
