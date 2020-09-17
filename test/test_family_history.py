@@ -36,8 +36,29 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      (MedicalHistoryFlag.DEGREE1,),
      ('mother', 'pcos'),
      ),
+    ('sister has anxiety as well as PCOS',
+     (MedicalHistoryFlag.DEGREE1,),
+     ('sister', 'pcos'),
+     ),
+    ('mother with hx of pcos',
+     (MedicalHistoryFlag.DEGREE1,),
+     ('mother', 'pcos'),
+     ),
+    ('concern of PCOS given her family history of PCOS',
+     (MedicalHistoryFlag.FAMILY,),
+     ('family history', 'pcos'),
+     ),
 ])
 def test_family_history(text, exp_flags, exp_data):
+    flags, data = get_medical_history(text, 'pcos', r'poly\s*cystic ovar\w+')
+    assert set(flags) == set(exp_flags)
+    assert set(data) == set(exp_data)
+
+
+def test_family_history_none():
+    text = 'FAMILY HISTORY:  History of PCOS (poly cystic ovarian syndrome) in family: none'
+    exp_flags = (MedicalHistoryFlag.FAMILY_NEG,)
+    exp_data = (('PCOS', 'none'), ('poly cystic ovarian', 'none'))
     flags, data = get_medical_history(text, 'pcos', r'poly\s*cystic ovar\w+')
     assert set(flags) == set(exp_flags)
     assert set(data) == set(exp_data)

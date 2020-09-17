@@ -45,6 +45,7 @@ class MedicalHistoryFlag(Enum):
     OTHER_NEG = 8
     FAMILY = 9
     FAMILY_NEG = 10
+    NONE = 11
 
 
 MEDICAL_HISTORY_TERMS = {
@@ -145,6 +146,10 @@ def _extract_terms(text, d):
         yield m.start(), m.end(), match, d[match]
 
 
+def extract_none(text):
+    yield from _extract_terms(text, {'none': MedicalHistoryFlag.NONE})
+
+
 def extract_medical_history_terms(text):
     yield from _extract_terms(text, MEDICAL_HISTORY_TERMS)
 
@@ -191,12 +196,29 @@ def get_medical_history(text, *targets):
     #     return (MedicalHistoryFlag.UNKNOWN,), term
     medhist = list(extract_medical_history_terms(text))
     relhist = list(extract_relatives(text))
+    nonehist = list(extract_none(text))
     sectioner = Sectioner(text)
     if not medhist and not relhist:
         return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
     for m in target_pat.finditer(text):
         section = sectioner.get_section(m.start()).lower()
-        if section and 'problem list' in section or section in ['assessment:']:
+        if 'problem list' in section or section in ['assessment:']:
+            continue
+        negated = False
+        for start, end, match, label in nonehist:
+            if end < m.start() or start - m.start() > 100:
+                continue
+            if _contains_separators(text[m.start(): start], '.;•*'):
+                continue
+            if not _contains_separators(text[m.start(): start], ':', max_count=1):
+                if 'family history' in section:
+                    results.append(MedicalHistoryFlag.FAMILY_NEG)
+                else:
+                    results.append(MedicalHistoryFlag.NEGATED)
+                data.append((m.group(), match))
+                negated = True
+                break
+        if negated:
             continue
         relatives = []
         if 'family history' in section or 'history' not in section:
