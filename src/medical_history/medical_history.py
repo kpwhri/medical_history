@@ -14,6 +14,8 @@ class Sectioner:
         r'|past surgical history'
         r'|problem list'
         r'|family history'
+        r'|pmhx'
+        r'|mhx'
         r'|[a-z\-]+'
         r')\s?:', re.I
     )
@@ -54,15 +56,20 @@ MEDICAL_HISTORY_TERMS = {
     'history': MedicalHistoryFlag.PERSONAL,
     'hx of': MedicalHistoryFlag.PERSONAL,
     'hx': MedicalHistoryFlag.PERSONAL,
+    'mhx': MedicalHistoryFlag.PERSONAL,
+    'pmhx': MedicalHistoryFlag.PERSONAL,
+    'phx': MedicalHistoryFlag.PERSONAL,
     'no medical history': MedicalHistoryFlag.NEGATED,
     'no significant medical history': MedicalHistoryFlag.NEGATED,
     'family history': MedicalHistoryFlag.FAMILY,
     'significant family history': MedicalHistoryFlag.FAMILY,
     'family medical history': MedicalHistoryFlag.FAMILY,
     'famhx': MedicalHistoryFlag.FAMILY,
+    'fmhx': MedicalHistoryFlag.FAMILY,
+    'fhx': MedicalHistoryFlag.FAMILY,
     'family hx': MedicalHistoryFlag.FAMILY,
     'no family history': MedicalHistoryFlag.FAMILY_NEG,
-    'fh of': MedicalHistoryFlag.FAMILY,
+    'fh': MedicalHistoryFlag.FAMILY,
     'no fh': MedicalHistoryFlag.FAMILY_NEG,
     'no significant family history': MedicalHistoryFlag.FAMILY_NEG,
     'no significant family medical history': MedicalHistoryFlag.FAMILY_NEG,
@@ -159,7 +166,7 @@ def extract_relatives(text):
 
 
 def _span_is_negated(span):
-    pat = re.compile(r'\b(not?)\b', re.I)
+    pat = re.compile(r'\b(not?|denie(s|d)|none|neg(ative)?)\b', re.I)
     if m := pat.search(span):
         return m.group().lower()
     return None
