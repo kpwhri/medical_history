@@ -29,4 +29,4 @@ def test_medical_history(text, exp_flag, exp_data):
     flags, data = get_medical_history(text, 'pcos', 'polycystic ovarian')
     assert len(flags) == 1
     assert flags[0] == exp_flag
-    assert data == exp_data
+    assert tuple(d for d in data if d) == exp_data
