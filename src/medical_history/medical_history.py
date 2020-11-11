@@ -205,7 +205,7 @@ def _contains_separators(text, seps, max_count=0):
     return False
 
 
-def get_medical_history(text, *targets, return_excluded=False):
+def get_medical_history(text, *targets, return_excluded=False, max_range=100):
     results = []
     data = []
     excluded = []
@@ -226,7 +226,7 @@ def get_medical_history(text, *targets, return_excluded=False):
             continue
         negated = False
         for start, end, match, label in nonehist:
-            if end < m.start() or start - m.start() > 100:
+            if end < m.start() or start - m.start() > max_range:
                 continue
             if _contains_separators(text[m.start(): start], '.;•*'):
                 continue
@@ -245,7 +245,7 @@ def get_medical_history(text, *targets, return_excluded=False):
             for start, end, match, label in relhist:
                 exclude_flag = ExcludeFlag.INCLUDE
                 if end < m.start():
-                    if m.start() - end > 100:
+                    if m.start() - end > max_range:
                         continue
                     elif _contains_separators(text[end: m.start()], '.'):
                         exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
@@ -262,7 +262,7 @@ def get_medical_history(text, *targets, return_excluded=False):
                     else:
                         excluded.append((label, datum[0], datum[1], datum[2], text[start:m.end()], exclude_flag))
                 else:
-                    if start - m.end() > 100:
+                    if start - m.end() > max_range:
                         continue
                     elif _contains_separators(text[m.end(): start], '.'):
                         exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
