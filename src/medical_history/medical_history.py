@@ -183,7 +183,7 @@ def _span_is_negated(span):
 
 
 def _span_is_not_relevant(span):
-    pat = re.compile(r'\b(about|but)\b', re.I)
+    pat = re.compile(r'\b(about|but|assess|evaluat|suspect|possib|suspicious|check|please|\?)\b', re.I)
     if m := pat.search(span):
         return m.group().lower()
     return None
@@ -203,6 +203,13 @@ def _contains_separators(text, seps, max_count=0):
             if cnt > max_count:
                 return True
     return False
+
+
+def _contains_period(text, max_count=0):
+    """Exclude dx codes"""
+    pat = re.compile(r'[A-Z0-9]\.[A-Z0-9]')  # no ignore case
+    text = pat.sub('', text)
+    return text.count('.') > max_count
 
 
 def get_medical_history(text, *targets, return_excluded=False, max_range=100):
@@ -228,7 +235,9 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
         for start, end, match, label in nonehist:
             if end < m.start() or start - m.start() > max_range:
                 continue
-            if _contains_separators(text[m.start(): start], '.;•*'):
+            if _contains_separators(text[m.start(): start], ';•*'):
+                continue
+            if _contains_period(text[m.start(): start]):
                 continue
             if not _contains_separators(text[m.start(): start], ':', max_count=1):
                 if 'family history' in section:
@@ -247,7 +256,7 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
                 if end < m.start():
                     if m.start() - end > max_range:
                         continue
-                    elif _contains_separators(text[end: m.start()], '.'):
+                    elif _contains_period(text[end: m.start()]):
                         exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
                     elif _contains_separators(text[end + 2: m.start()], ';•*'):
                         exclude_flag = ExcludeFlag.DIFFERENT_SECTION
@@ -264,7 +273,7 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
                 else:
                     if start - m.end() > max_range:
                         continue
-                    elif _contains_separators(text[m.end(): start], '.'):
+                    elif _contains_period(text[m.end(): start]):
                         exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
                     elif _contains_separators(text[m.end() + 2: start], ':;•*'):
                         exclude_flag = ExcludeFlag.DIFFERENT_SECTION
@@ -289,7 +298,7 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
                 continue
             if start > m.end():  # medical history should not occur after
                 continue
-            elif _contains_separators(text[end: m.start()], '.'):
+            elif _contains_period(text[end: m.start()]):
                 exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
             elif _contains_separators(text[end + 2: m.start()], ':;•*'):
                 exclude_flag = ExcludeFlag.DIFFERENT_SECTION

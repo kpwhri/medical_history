@@ -24,9 +24,36 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      MedicalHistoryFlag.NEGATED,
      ('pcos', 'no medical history'),
      ),
+    ('HISTORY: irregular periods/h/o PCOS',
+     MedicalHistoryFlag.PERSONAL,
+     ('pcos', 'history', 'pcos', 'h/o')
+     ),
+    ('HISTORY: AMENORRHEA, PCOS:: amenorrhea, PCOS',
+     MedicalHistoryFlag.PERSONAL,
+     ('pcos', 'history')
+     ),
+    ('HX POLYCYSTIC OVARIES',
+     MedicalHistoryFlag.PERSONAL,
+     ('polycystic ovaries', 'hx')
+     ),
+    ('HISTORY: E28.2-Polycystic ovarian',
+     MedicalHistoryFlag.PERSONAL,
+     ('polycystic ovarian', 'history')
+     ),
 ])
 def test_medical_history(text, exp_flag, exp_data):
-    flags, data = get_medical_history(text, 'pcos', 'polycystic ovarian')
-    assert len(flags) == 1
+    flags, data = get_medical_history(text, 'pcos', r'polycystic ovar\w+')
+    assert flags[0] == exp_flag
+    assert tuple(d for d in data if d) == exp_data
+
+
+@pytest.mark.parametrize(('text', 'exp_flag', 'exp_data'), [
+    ('HISTORY: E28.2-Polycystic ovarian',
+     MedicalHistoryFlag.PERSONAL,
+     ('e28.2', 'history', 'polycystic ovarian', 'history')
+     ),
+])
+def test_medical_history_dx_code(text, exp_flag, exp_data):
+    flags, data = get_medical_history(text, 'pcos', r'polycystic ovar\w+', 'e28.2')
     assert flags[0] == exp_flag
     assert tuple(d for d in data if d) == exp_data
