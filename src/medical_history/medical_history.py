@@ -183,7 +183,7 @@ def _span_is_negated(span):
 
 
 def _span_is_not_relevant(span):
-    pat = re.compile(r'\b(about|but|assess|evaluat|suspect|possib|suspicious|check|please|\?)\b', re.I)
+    pat = re.compile(r'\b(about|but|assess|evaluat|suspect|possib|suspicious|check|please|\?|for|test)\b', re.I)
     if m := pat.search(span):
         return m.group().lower()
     return None
