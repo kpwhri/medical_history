@@ -229,8 +229,8 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
         return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
     for m in target_pat.finditer(text):
         section = sectioner.get_section(m.start()).lower()
-        if 'problem list' in section or section in ['assessment:']:
-            continue
+        # if 'problem list' in section or section in ['assessment:']:
+        #     continue
         negated = False
         for start, end, match, label in nonehist:
             if end < m.start() or start - m.start() > max_range:
