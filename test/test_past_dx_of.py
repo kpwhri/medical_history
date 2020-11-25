@@ -14,7 +14,11 @@ from medical_history.medical_history import MedicalHistoryFlag, get_medical_hist
     ('pcos dx\'d around 2012-13', MedicalHistoryFlag.PERSONAL,),
     ('prior pcos dx', MedicalHistoryFlag.PERSONAL,),
     ('past dx of pcos', MedicalHistoryFlag.PERSONAL,),
-    ('possible pcos dx', MedicalHistoryFlag.PERSONAL_MAYBE,),
+    ('possible pcos dx', MedicalHistoryFlag.PERSONAL_CURRENT_MAYBE,),
+    ('possible pcos dx in 2012', MedicalHistoryFlag.PERSONAL_MAYBE,),
+    ('possible prior pcos dx', MedicalHistoryFlag.PERSONAL_MAYBE,),
+    ('possible previous pcos dx', MedicalHistoryFlag.PERSONAL_MAYBE,),
+    ('no previous pcos dx', MedicalHistoryFlag.NEGATED,),
 ])
 def test_past_dx_of(text, exp_flag):
     flags, data = get_medical_history(text, 'pcos')

@@ -49,6 +49,8 @@ class MedicalHistoryFlag(Enum):
     FAMILY_NEG = 10
     NONE = 11
     PERSONAL_MAYBE = 12
+    PERSONAL_CURRENT = 13
+    PERSONAL_CURRENT_MAYBE = 14
 
 
 class ExcludeFlag(Enum):
@@ -184,7 +186,7 @@ def _span_is_negated(span):
 
 
 def _span_is_not_relevant(span):
-    pat = re.compile(r'\b(about|but|assess|evaluat|suspect|possib|suspicious|check|please|\?|for|test)\b', re.I)
+    pat = re.compile(r'(about|\bbut\b|assess|evaluat|suspect|possib|suspicious|check|please|\?|for|test)', re.I)
     if m := pat.search(span):
         return m.group().lower()
     return None
@@ -217,40 +219,71 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
     results = []
     data = []
     excluded = []
-    target_pat = re.compile(fr'\b({"|".join(targets)})\b', re.I)
+    target_pat_str = f'({"|".join(targets)})'
+    dx_str = r'(dx|diagnosis|dx\W?d|diagnosed)'
+    target_pat = re.compile(fr'\b{target_pat_str}\b', re.I)
+    dx_pat = re.compile(
+        '('
+        fr'({dx_str}\s*(of\s*)?{target_pat_str})'
+        fr'|({target_pat_str}\s*{dx_str})'
+        fr')',
+        re.I
+    )
     # if term := is_negated(text):
     #     return (MedicalHistoryFlag.UNKNOWN,), term
     medhist = list(extract_medical_history_terms(text))
     relhist = list(extract_relatives(text))
     nonehist = list(extract_none(text))
     sectioner = Sectioner(text)
-    if not medhist and not relhist:
-        if return_excluded:
-            return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',), ()
-        return (MedicalHistoryFlag.UNKNOWN,), ('no medical history mention',)
-    for m in target_pat.finditer(text):
-        section = sectioner.get_section(m.start()).lower()
-        if 'problem list' in section or section in ['assessment:']:  # recent items
-            continue
-        if find_negated_history_patterns(data, m, max_range, nonehist, results, section, text):
-            continue
-        relatives = []
-        if 'family history' in section or 'history' not in section:
-            find_in_family_history_section(excluded, m, max_range, relatives, relhist, text)
-        if relatives:
-            result, datum = sorted(relatives, key=lambda x: (x[2], x[3]))[0][:2]
-            results.append(result)
-            data += datum
-        data = find_in_personal_history(data, excluded, m, medhist, relatives, results, section, text)
+    if medhist or relhist:
+        for m in target_pat.finditer(text):
+            section = sectioner.get_section(m.start()).lower()
+            if 'problem list' in section or section in ['assessment:']:  # recent items
+                continue
 
-        # determine if in medical history section
-        if section:
-            if 'family history' in section:
-                results.append(MedicalHistoryFlag.FAMILY)
-                data += [m.group().lower(), section]
-            if 'medical history' in section:
+            # negated patterns
+            if find_negated_history_patterns(data, m, max_range, nonehist, results, section, text):
+                continue
+
+            # family history
+            relatives = []
+            if 'family history' in section or 'history' not in section:
+                find_in_family_history_section(excluded, m, max_range, relatives, relhist, text)
+            if relatives:
+                result, datum = sorted(relatives, key=lambda x: (x[2], x[3]))[0][:2]
+                results.append(result)
+                data += datum
+
+            # personal history
+            data = find_in_personal_history(data, excluded, m, medhist, relatives, results, section, text)
+
+            # determine if in medical history section
+            if section:
+                if 'family history' in section:
+                    results.append(MedicalHistoryFlag.FAMILY)
+                    data += [m.group().lower(), section]
+                if 'medical history' in section:
+                    results.append(MedicalHistoryFlag.PERSONAL)
+                    data += [m.group().lower(), section]
+
+    # look for 'past dx of pcos'
+    for m in dx_pat.finditer(text):
+        past = find_past_qualifier(m, text)
+        maybe = find_maybe_dx(m, text)
+        negated = find_negated_dx(m, text)
+        data += [x for x in [m.group().lower(), past, maybe, negated] if x]
+        if negated:
+            results.append(MedicalHistoryFlag.NEGATED)
+        elif past:
+            if maybe:
+                results.append(MedicalHistoryFlag.PERSONAL_MAYBE)
+            else:
                 results.append(MedicalHistoryFlag.PERSONAL)
-                data += [m.group().lower(), section]
+        else:
+            if maybe:
+                results.append(MedicalHistoryFlag.PERSONAL_CURRENT_MAYBE)
+            else:
+                results.append(MedicalHistoryFlag.PERSONAL_CURRENT)
 
     if results:
         if return_excluded:
@@ -260,6 +293,39 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
         if return_excluded:
             return (MedicalHistoryFlag.UNKNOWN,), (), ()
         return (MedicalHistoryFlag.UNKNOWN,), ()
+
+
+def find_maybe_dx(m, text):
+    """Look for any qualification (e.g., 'maybe') related to dx"""
+    offset = 20
+    target = text[max(0, m.start() - offset): m.end() + offset]
+    if text := _span_is_not_relevant(target):
+        return text
+
+
+def find_negated_dx(m, text):
+    """Look for any qualification (e.g., 'maybe') related to dx"""
+    offset = 20
+    target = text[max(0, m.start() - offset): m.end() + offset]
+    if text := _span_is_negated(target):
+        return text
+
+
+def find_past_qualifier(m, text):
+    """Look for qualification of 'dx condition' to 'past', 'in 2012', etc."""
+    offset = 20
+    target = text[max(0, m.start() - offset): m.end() + offset]
+    past_pat = re.compile(
+        r'\b('
+        r'\d{4}'  # year mentioned
+        r'|prior|past|former|previous'
+        r'|age'
+        r'|at \d{2}'
+        r')\b',
+        re.I
+    )
+    if m2 := past_pat.search(target):
+        return m2.group().lower()
 
 
 def find_in_personal_history(data, excluded, m, medhist, relatives, results, section, text):
