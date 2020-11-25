@@ -1,6 +1,7 @@
 import pytest
 
-from medical_history.medical_history import get_medical_history, MedicalHistoryFlag
+from medical_history.medical_history import get_medical_history
+from medical_history.flags import MedicalHistoryFlag
 
 
 @pytest.mark.parametrize(('text', 'exp_flag', 'exp_data'), [
@@ -42,9 +43,9 @@ from medical_history.medical_history import get_medical_history, MedicalHistoryF
      ),
 ])
 def test_medical_history(text, exp_flag, exp_data):
-    flags, data = get_medical_history(text, 'pcos', r'polycystic ovar\w+')
-    assert flags[0] == exp_flag
-    assert tuple(d for d in data if d) == exp_data
+    results = get_medical_history(text, 'pcos', r'polycystic ovar\w+')
+    assert set(results.iter_flags()) == {exp_flag}
+    assert set(results.iter_terms()) == {exp_data}
 
 
 @pytest.mark.parametrize(('text', 'exp_flag', 'exp_data'), [
@@ -54,6 +55,6 @@ def test_medical_history(text, exp_flag, exp_data):
      ),
 ])
 def test_medical_history_dx_code(text, exp_flag, exp_data):
-    flags, data = get_medical_history(text, 'pcos', r'polycystic ovar\w+', 'e28.2')
-    assert flags[0] == exp_flag
-    assert tuple(d for d in data if d) == exp_data
+    results = get_medical_history(text, 'pcos', r'polycystic ovar\w+', 'e28.2')
+    assert set(results.iter_flags()) == {exp_flag}
+    assert set(results.iter_terms()) == {exp_data}

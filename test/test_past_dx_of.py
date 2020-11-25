@@ -1,6 +1,7 @@
 import pytest
 
-from medical_history.medical_history import MedicalHistoryFlag, get_medical_history
+from medical_history.medical_history import get_medical_history
+from medical_history.flags import MedicalHistoryFlag
 
 
 @pytest.mark.parametrize(('text', 'exp_flag'), [
@@ -21,5 +22,5 @@ from medical_history.medical_history import MedicalHistoryFlag, get_medical_hist
     ('no previous pcos dx', MedicalHistoryFlag.NEGATED,),
 ])
 def test_past_dx_of(text, exp_flag):
-    flags, data = get_medical_history(text, 'pcos')
-    assert flags[0] == exp_flag
+    results = get_medical_history(text, 'pcos')
+    assert set(results.iter_flags()) == {exp_flag}

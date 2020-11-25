@@ -1,7 +1,8 @@
-from enum import Enum
-
 from regexify import Pattern
 import regex as re
+
+from medical_history.flags import MedicalHistoryFlag, ExcludeFlag
+from medical_history.results import Result, ResultList
 
 
 class Sectioner:
@@ -31,34 +32,8 @@ class Sectioner:
     def get_section(self, index):
         for idx, label in self.sections:
             if index > idx:
-                return label.lower()
-        return ''
-
-
-class MedicalHistoryFlag(Enum):
-    UNKNOWN = 0
-    NEGATED = 1
-    PERSONAL = 2
-    DEGREE1 = 3
-    DEGREE1_NEG = 4
-    DEGREE2 = 5
-    DEGREE2_NEG = 6
-    OTHER = 7
-    OTHER_NEG = 8
-    FAMILY = 9
-    FAMILY_NEG = 10
-    NONE = 11
-    PERSONAL_MAYBE = 12
-    PERSONAL_CURRENT = 13
-    PERSONAL_CURRENT_MAYBE = 14
-
-
-class ExcludeFlag(Enum):
-    INCLUDE = 0
-    EXCLUDE = 1
-    NOT_RELEVANT = 2
-    DIFFERENT_SECTION = 3
-    DIFFERENT_SENTENCE = 4
+                return idx, label.lower()
+        return None, ''
 
 
 MEDICAL_HISTORY_TERMS = {
@@ -163,7 +138,7 @@ def _extract_terms(text, d):
     pat = re.compile(rf'\b({"|".join(d.keys())})\b', re.ENHANCEMATCH | re.I)
     for m in pat.finditer(text):
         match = ' '.join(m.group().lower().split())
-        yield m.start(), m.end(), match, d[match]
+        yield m, d[match]
 
 
 def extract_none(text):
@@ -181,21 +156,15 @@ def extract_relatives(text):
 def _span_is_negated(span):
     pat = re.compile(r'\b(not?|denie(s|d)|none|neg(ative)?)\b', re.I)
     if m := pat.search(span):
-        return m.group().lower()
+        return m
     return None
 
 
 def _span_is_not_relevant(span):
     pat = re.compile(r'(about|\bbut\b|assess|evaluat|suspect|possib|suspicious|check|please|\?|for|test)', re.I)
     if m := pat.search(span):
-        return m.group().lower()
+        return m
     return None
-
-
-def relhist_results(m, span, label, match):
-    if neg := _span_is_negated(span):
-        return NEGATE[label], [m.group().lower(), match, neg]
-    return label, [m.group().lower(), match, '']
 
 
 def _contains_separators(text, seps, max_count=0):
@@ -215,10 +184,10 @@ def _contains_period(text, max_count=0):
     return text.count('.') > max_count
 
 
-def get_medical_history(text, *targets, return_excluded=False, max_range=100):
-    results = []
-    data = []
-    excluded = []
+def get_medical_history(text, *targets, max_range=100, metadata=None):
+    if metadata:
+        Result.METADATA = metadata
+    results = ResultList()
     target_pat_str = f'({"|".join(targets)})'
     dx_str = r'(dx|diagnosis|dx\W?d|diagnosed)'
     target_pat = re.compile(fr'\b{target_pat_str}\b', re.I)
@@ -237,78 +206,68 @@ def get_medical_history(text, *targets, return_excluded=False, max_range=100):
     sectioner = Sectioner(text)
     if medhist or relhist:
         for m in target_pat.finditer(text):
-            section = sectioner.get_section(m.start()).lower()
+            section_idx, section = sectioner.get_section(m.start())
             if 'problem list' in section or section in ['assessment:']:  # recent items
                 continue
 
             # negated patterns
-            if find_negated_history_patterns(data, m, max_range, nonehist, results, section, text):
+            if find_negated_history_patterns(results, m, max_range, nonehist, section, text):
                 continue
 
             # family history
-            relatives = []
+            found_relatives = False
             if 'family history' in section or 'history' not in section:
-                find_in_family_history_section(excluded, m, max_range, relatives, relhist, text)
-            if relatives:
-                result, datum = sorted(relatives, key=lambda x: (x[2], x[3]))[0][:2]
-                results.append(result)
-                data += datum
+                found_relatives = find_in_family_history_section(m, max_range, results, relhist, text)
 
             # personal history
-            data = find_in_personal_history(data, excluded, m, medhist, relatives, results, section, text)
+            find_in_personal_history(m, medhist, found_relatives, results, section, text)
 
             # determine if in medical history section
             if section:
+                result = Result(target=m, section=section, snippet=text[min(0, section_idx - 10):m.end() + 10])
                 if 'family history' in section:
-                    results.append(MedicalHistoryFlag.FAMILY)
-                    data += [m.group().lower(), section]
+                    result.medical_history_flag = MedicalHistoryFlag.FAMILY
+                    results.append(result)
                 if 'medical history' in section:
-                    results.append(MedicalHistoryFlag.PERSONAL)
-                    data += [m.group().lower(), section]
+                    result.medical_history_flag = MedicalHistoryFlag.PERSONAL
+                    results.append(result)
 
     # look for 'past dx of pcos'
     for m in dx_pat.finditer(text):
         past = find_past_qualifier(m, text)
         maybe = find_maybe_dx(m, text)
         negated = find_negated_dx(m, text)
-        data += [x for x in [m.group().lower(), past, maybe, negated] if x]
+        result = Result(target=m, secondary=past, qualifier=maybe, qualifier2=negated)
+        result.set_context(text)
         if negated:
-            results.append(MedicalHistoryFlag.NEGATED)
+            result.medical_history_flag = MedicalHistoryFlag.NEGATED
         elif past:
             if maybe:
-                results.append(MedicalHistoryFlag.PERSONAL_MAYBE)
+                result.medical_history_flag = MedicalHistoryFlag.PERSONAL_MAYBE
             else:
-                results.append(MedicalHistoryFlag.PERSONAL)
+                result.medical_history_flag = MedicalHistoryFlag.PERSONAL
         else:
             if maybe:
-                results.append(MedicalHistoryFlag.PERSONAL_CURRENT_MAYBE)
+                result.medical_history_flag = MedicalHistoryFlag.PERSONAL_CURRENT_MAYBE
             else:
-                results.append(MedicalHistoryFlag.PERSONAL_CURRENT)
-
-    if results:
-        if return_excluded:
-            return tuple(results), tuple(data), tuple(excluded)
-        return tuple(results), tuple(data)
-    else:
-        if return_excluded:
-            return (MedicalHistoryFlag.UNKNOWN,), (), ()
-        return (MedicalHistoryFlag.UNKNOWN,), ()
+                result.medical_history_flag = MedicalHistoryFlag.PERSONAL_CURRENT
+    return results
 
 
 def find_maybe_dx(m, text):
     """Look for any qualification (e.g., 'maybe') related to dx"""
     offset = 20
     target = text[max(0, m.start() - offset): m.end() + offset]
-    if text := _span_is_not_relevant(target):
-        return text
+    if m := _span_is_not_relevant(target):
+        return m
 
 
 def find_negated_dx(m, text):
     """Look for any qualification (e.g., 'maybe') related to dx"""
     offset = 20
     target = text[max(0, m.start() - offset): m.end() + offset]
-    if text := _span_is_negated(target):
-        return text
+    if m := _span_is_negated(target):
+        return m
 
 
 def find_past_qualifier(m, text):
@@ -324,92 +283,74 @@ def find_past_qualifier(m, text):
         r')\b',
         re.I
     )
-    if m2 := past_pat.search(target):
-        return m2.group().lower()
+    return past_pat.search(target)
 
 
-def find_in_personal_history(data, excluded, m, medhist, relatives, results, section, text):
-    not_fam_hx_section = 'family history' not in section and not relatives
-    for start, end, match, label in medhist:
-        exclude_flag = ExcludeFlag.INCLUDE
+def find_in_personal_history(m, medhist, found_relatives, results, section, text):
+    not_fam_hx_section = 'family history' not in section and not found_relatives
+    for match, label in medhist:
+        result = Result(target=m, secondary=match, section=section)
         if not not_fam_hx_section and label != MedicalHistoryFlag.FAMILY:
             continue
-        if start > m.end():  # medical history should not occur after
+        if match.start() > m.end():  # medical history should not occur after
             continue
-        elif _contains_period(text[end: m.start()]):
-            exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
-        elif _contains_separators(text[end + 2: m.start()], ':;•*'):
-            exclude_flag = ExcludeFlag.DIFFERENT_SECTION
-        elif _span_is_not_relevant(text[end: m.start()]):
-            exclude_flag = ExcludeFlag.NOT_RELEVANT
+        result = _find_history_in_section(result, match.end(), m.start(), text, label)
+        results.append(result)
 
-        # negation
-        if neg := _span_is_negated(text[start - 10:start]):
-            label = NEGATE[label]
-            datum = [m.group().lower(), match, neg]
+
+def _find_history_in_section(result: Result, start, end, text, label, *, section_seps=':;•*', max_range=None):
+    if max_range and end - start > max_range:
+        return
+    elif _contains_period(text[start: end]):
+        result.exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
+    elif _contains_separators(text[start + 2: end], section_seps):
+        result.exclude_flag = ExcludeFlag.DIFFERENT_SECTION
+    elif _span_is_not_relevant(text[start: end]):
+        result.exclude_flag = ExcludeFlag.NOT_RELEVANT
+
+    if neg := _span_is_negated(text[start - 10: end]):
+        result.medical_history_flag = NEGATE[label]
+        result.qualifier = neg
+    else:
+        result.medical_history_flag = label
+    result.set_context(text)
+    return result
+
+
+def find_in_family_history_section(m, max_range, results, relhist, text):
+    curr = []
+    for match, label in relhist:
+        result = Result(target=m, secondary=match)
+        if match.end() < m.start():
+            result = _find_history_in_section(result, match.end(), m.start(), text, label,
+                                              section_seps=';•*',
+                                              max_range=max_range)
         else:
-            datum = [m.group().lower(), match, '']
-
-        if exclude_flag == ExcludeFlag.INCLUDE:
-            results.append(label)
-            data += datum
-        else:
-            excluded.append((label, datum[0], datum[1], datum[2], text[start:m.end()], exclude_flag))
-    return data
-
-
-def find_in_family_history_section(excluded, m, max_range, relatives, relhist, text):
-    for start, end, match, label in relhist:
-        exclude_flag = ExcludeFlag.INCLUDE
-        if end < m.start():
-            if m.start() - end > max_range:
-                continue
-            elif _contains_period(text[end: m.start()]):
-                exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
-            elif _contains_separators(text[end + 2: m.start()], ';•*'):
-                exclude_flag = ExcludeFlag.DIFFERENT_SECTION
-            elif _span_is_not_relevant(text[end: m.start()]):
-                exclude_flag = ExcludeFlag.NOT_RELEVANT
-            result, datum = relhist_results(m, text[end:m.start()], label, match)
-            if neg := _span_is_negated(text[start - 10:start]):
-                result = NEGATE[result]
-                datum[-1] = neg
-            if exclude_flag == ExcludeFlag.INCLUDE:
-                relatives.append((result, datum, m.start() - end, 1))
-            else:
-                excluded.append((label, datum[0], datum[1], datum[2], text[start:m.end()], exclude_flag))
-        else:
-            if start - m.end() > max_range:
-                continue
-            elif _contains_period(text[m.end(): start]):
-                exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
-            elif _contains_separators(text[m.end() + 2: start], ':;•*'):
-                exclude_flag = ExcludeFlag.DIFFERENT_SECTION
-            elif _span_is_not_relevant(text[m.end(): start]):
-                exclude_flag = ExcludeFlag.NOT_RELEVANT
-            result, datum = relhist_results(m, text[m.end():start], label, match)
-            if neg := _span_is_negated(text[m.start() - 10:m.start()]):
-                result = NEGATE[result]
-                datum[-1] = neg
-            if exclude_flag == ExcludeFlag.INCLUDE:
-                relatives.append((result, datum, start - m.end(), 0))
-            else:
-                excluded.append((label, datum[0], datum[1], datum[2], text[m.start():end], exclude_flag))
+            result = _find_history_in_section(result, m.end(), match.start(), text, label,
+                                              max_range=max_range)
+        curr.append(result)
+    if len(curr) > 2:  # get closest -- minimum snippet length
+        for i, val in enumerate(sorted(curr, key=lambda x: -len(x))):
+            if i > 0:  # keep only the closest value
+                val.exclude_flag = ExcludeFlag.CLOSER_MENTION
+    results += curr
+    return len(curr) > 0
 
 
-def find_negated_history_patterns(data, m, max_range, nonehist, results, section, text):
-    for start, end, match, label in nonehist:
-        if end < m.start() or start - m.start() > max_range:
+def find_negated_history_patterns(results, m, max_range, nonehist, section, text):
+    for match, label in nonehist:
+        if match.end() < m.start() or match.start() - m.start() > max_range:
             continue
-        if _contains_separators(text[m.start(): start], ';•*'):
+        if _contains_separators(text[m.start(): match.start()], ';•*'):
             continue
-        if _contains_period(text[m.start(): start]):
+        if _contains_period(text[m.start(): match.start()]):
             continue
-        if not _contains_separators(text[m.start(): start], ':', max_count=1):
+        if not _contains_separators(text[m.start(): match.start()], ':', max_count=1):
             if 'family history' in section:
-                results.append(MedicalHistoryFlag.FAMILY_NEG)
+                result = Result(medical_history_flag=MedicalHistoryFlag.FAMILY_NEG)
             else:
-                results.append(MedicalHistoryFlag.NEGATED)
-            data.append((m.group(), match))
+                result = Result(medical_history_flag=MedicalHistoryFlag.NEGATED)
+            result.set_targets(text, target=match, qualifier=m)
+            results.append(result)
             return True
     return False
