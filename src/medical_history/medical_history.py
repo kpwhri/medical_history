@@ -48,6 +48,7 @@ class MedicalHistoryFlag(Enum):
     FAMILY = 9
     FAMILY_NEG = 10
     NONE = 11
+    PERSONAL_MAYBE = 12
 
 
 class ExcludeFlag(Enum):
