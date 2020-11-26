@@ -294,21 +294,25 @@ def find_in_personal_history(m, medhist, found_relatives, results, section, text
             continue
         if match.start() > m.end():  # medical history should not occur after
             continue
-        result = _find_history_in_section(result, match.end(), m.start(), text, label)
+        result = _find_history_in_section(result, match.start(), match.end(), m.start(), text, label)
         results.append(result)
 
 
-def _find_history_in_section(result: Result, start, end, text, label, *, section_seps=':;•*', max_range=None):
-    if max_range and end - start > max_range:
+def _find_history_in_section(result: Result, start_first, end_first, start_second, text, label,
+                             *, section_seps=':;•*', max_range=None):
+    if max_range and start_second - end_first > max_range:
         return
-    elif _contains_period(text[start: end]):
+    elif _contains_period(text[end_first: start_second]):
         result.exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
-    elif _contains_separators(text[start + 2: end], section_seps):
+    elif _contains_separators(text[end_first + 2: start_second], section_seps):
         result.exclude_flag = ExcludeFlag.DIFFERENT_SECTION
-    elif _span_is_not_relevant(text[start: end]):
+    elif _span_is_not_relevant(text[end_first: start_second]):
         result.exclude_flag = ExcludeFlag.NOT_RELEVANT
 
-    if neg := _span_is_negated(text[start - 10: end]):
+    if neg := _span_is_negated(text[end_first: start_second]):
+        result.medical_history_flag = NEGATE[label]
+        result.qualifier = neg
+    elif neg := _span_is_negated(text[max(0, start_first - 10): start_first]):
         result.medical_history_flag = NEGATE[label]
         result.qualifier = neg
     else:
@@ -322,12 +326,15 @@ def find_in_family_history_section(m, max_range, results, relhist, text):
     for match, label in relhist:
         result = Result(target=m, secondary=match)
         if match.end() < m.start():
-            result = _find_history_in_section(result, match.end(), m.start(), text, label,
-                                              section_seps=';•*',
-                                              max_range=max_range)
+            result = _find_history_in_section(
+                result, match.start(), match.end(), m.start(), text, label,
+                section_seps=';•*',
+                max_range=max_range
+            )
         else:
-            result = _find_history_in_section(result, m.end(), match.start(), text, label,
-                                              max_range=max_range)
+            result = _find_history_in_section(
+                result, m.start(), m.end(), match.start(), text, label,
+                max_range=max_range)
         curr.append(result)
     if len(curr) > 2:  # get closest -- minimum snippet length
         for i, val in enumerate(sorted(curr, key=lambda x: -len(x))):

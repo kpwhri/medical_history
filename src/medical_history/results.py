@@ -43,8 +43,8 @@ class Result:
     @property
     def terms(self):
         terms = set(x.group().lower() for x in [self.target, self.secondary, self.qualifier, self.qualifier2] if x)
-        if self.section:
-            terms.add(self.section)
+        # if self.section:
+        #     terms.add(self.section)
         return terms
 
     def to_json(self):

@@ -31,7 +31,7 @@ from medical_history.flags import MedicalHistoryFlag
      ),
     ('Family History : History of poly cystic ovarian',
      (MedicalHistoryFlag.FAMILY,),
-     ('poly cystic ovarian', 'family history :', 'family history'),
+     ('poly cystic ovarian', 'family history'),
      ),
     ('Mother with history of PCOS',
      (MedicalHistoryFlag.DEGREE1,),
