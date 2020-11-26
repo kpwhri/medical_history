@@ -12,7 +12,8 @@ def find_in_personal_history(m, medhist, found_relatives, results, section, text
         if match.start() > m.end():  # medical history should not occur after
             continue
         result = _find_history_in_section(result, match.start(), match.end(), m.start(), text, label)
-        results.append(result)
+        if result:
+            results.append(result)
 
 
 def _find_history_in_section(result: Result, start_first, end_first, start_second, text, label,
