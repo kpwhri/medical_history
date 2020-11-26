@@ -26,3 +26,18 @@ class ExcludeFlag(Enum):
     DIFFERENT_SECTION = 3
     DIFFERENT_SENTENCE = 4
     CLOSER_MENTION = 5
+
+
+NEGATE = {  # how to negate all the flags
+    MedicalHistoryFlag.UNKNOWN: MedicalHistoryFlag.UNKNOWN,
+    MedicalHistoryFlag.NEGATED: MedicalHistoryFlag.NEGATED,
+    MedicalHistoryFlag.PERSONAL: MedicalHistoryFlag.NEGATED,
+    MedicalHistoryFlag.DEGREE1: MedicalHistoryFlag.DEGREE1_NEG,
+    MedicalHistoryFlag.DEGREE1_NEG: MedicalHistoryFlag.DEGREE1_NEG,
+    MedicalHistoryFlag.DEGREE2: MedicalHistoryFlag.DEGREE2_NEG,
+    MedicalHistoryFlag.DEGREE2_NEG: MedicalHistoryFlag.DEGREE2_NEG,
+    MedicalHistoryFlag.OTHER: MedicalHistoryFlag.OTHER_NEG,
+    MedicalHistoryFlag.OTHER_NEG: MedicalHistoryFlag.OTHER_NEG,
+    MedicalHistoryFlag.FAMILY: MedicalHistoryFlag.FAMILY_NEG,
+    MedicalHistoryFlag.FAMILY_NEG: MedicalHistoryFlag.FAMILY_NEG,
+}

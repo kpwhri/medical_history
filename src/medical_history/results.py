@@ -1,4 +1,4 @@
-from collections import MutableSequence
+from collections.abc import MutableSequence
 from typing import re
 from dataclasses import dataclass
 

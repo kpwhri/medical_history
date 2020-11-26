@@ -1,7 +1,6 @@
 import pytest
 
 from medical_history.medical_history import get_medical_history
-from medical_history.flags import MedicalHistoryFlag
 
 
 @pytest.mark.parametrize(('text', 'exp_data'), [
