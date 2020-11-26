@@ -251,6 +251,7 @@ def get_medical_history(text, *targets, max_range=100, metadata=None):
                 result.medical_history_flag = MedicalHistoryFlag.PERSONAL_CURRENT_MAYBE
             else:
                 result.medical_history_flag = MedicalHistoryFlag.PERSONAL_CURRENT
+        results.append(result)
     return results
 
 
