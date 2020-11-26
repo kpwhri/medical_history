@@ -59,7 +59,7 @@ def test_family_history(text, exp_flags, exp_data):
 def test_family_history_none():
     text = 'FAMILY HISTORY:  History of PCOS (poly cystic ovarian syndrome) in family: none'
     exp_flags = (MedicalHistoryFlag.FAMILY_NEG,)
-    exp_data = ('PCOS', 'none', 'poly cystic ovarian', 'none')
+    exp_data = ('pcos', 'none', 'poly cystic ovarian', 'none')
     results = get_medical_history(text, 'pcos', r'poly\s*cystic ovar\w+')
     assert set(results.iter_flags()) == set(exp_flags)
     assert set(results.iter_terms()) == set(exp_data)

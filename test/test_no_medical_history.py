@@ -10,6 +10,5 @@ from medical_history.flags import MedicalHistoryFlag
 ])
 def test_no_medical_history(text, exp_data):
     results = get_medical_history(text, 'pcos', 'polycystic')
-    assert len(results) == 1
-    assert results[0].medical_history_flag == MedicalHistoryFlag.UNKNOWN
-    assert len(results.iter_terms()) == 0
+    assert len(results) == 0
+    assert len(list(results.iter_terms())) == 0
