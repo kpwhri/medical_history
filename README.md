@@ -14,3 +14,7 @@ Medical history will be classified as:
 * OTHER_NEG: other family relation did not have condition
 * FAMILY: generic family history of condition
 * FAMILY_NEG: generic family history of condition negated
+
+Entry Point:
+
+* `medical_history.py`
