@@ -36,10 +36,8 @@ def extract_relatives(text):
     yield from _extract_terms(text, RELATIVES)
 
 
-def get_medical_history(text, *targets, max_range=100, metadata=None):
-    if metadata:
-        Result.METADATA = metadata
-    results = ResultList()
+def get_medical_history(text, *targets, max_range=100, metadata=None) -> ResultList:
+    results = ResultList(metadata=metadata)
     target_pat_str = f'({"|".join(targets)})'
     dx_str = r'(dx|diagnosis|dx\W?d|diagnosed)'
     target_pat = re.compile(fr'\b{target_pat_str}\b', re.I)

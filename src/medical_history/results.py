@@ -47,7 +47,7 @@ class Result:
         #     terms.add(self.section)
         return terms
 
-    def to_json(self):
+    def to_dict(self):
         return {**self.METADATA,
                 'target': self.target.group(),
                 'secondary': self.secondary.group(),
@@ -59,11 +59,18 @@ class Result:
                 'terms': ','.join(self.terms)
                 }
 
+    def to_json(self):
+        return str(self.to_dict())
+
 
 class ResultList(MutableSequence):
 
-    def __init__(self):
+    def __init__(self, *, metadata=None):
         self.data = []
+        if metadata:
+            Result.METADATA = metadata
+        else:
+            Result.METADATA = {}
 
     def insert(self, index: int, result: Result) -> None:
         self.data.insert(index, result)
@@ -88,6 +95,17 @@ class ResultList(MutableSequence):
 
     def __iadd__(self, other):
         self.data += other
+
+    def to_jsonl(self):
+        return '\n'.join(self.iter_json())
+
+    def iter_dict(self):
+        for result in self.data:
+            yield result.to_dict()
+
+    def iter_json(self):
+        for result in self.data:
+            yield result.to_json()
 
     def iter_included(self, *, include_all=False):
         for result in self.data:
