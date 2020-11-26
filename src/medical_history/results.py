@@ -49,10 +49,11 @@ class Result:
 
     def to_dict(self):
         return {**self.METADATA,
-                'target': self.target.group(),
-                'secondary': self.secondary.group(),
+                'target': self.target.group() if self.target else None,
+                'secondary': self.secondary.group() if self.secondary else None,
                 'snippet': self.snippet,
-                'qualifier': self.qualifier.group(),
+                'qualifier': self.qualifier.group() if self.qualifier else None,
+                'qualifier2': self.qualifier2.group() if self.qualifier2 else None,
                 'medical_history_flag': self.medical_history_flag.name,
                 'excluded_flag': self.exclude_flag.name,
                 'section': self.section,

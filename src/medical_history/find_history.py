@@ -54,7 +54,8 @@ def find_in_family_history_section(m, max_range, results, relhist, text):
             result = _find_history_in_section(
                 result, m.start(), m.end(), match.start(), text, label,
                 max_range=max_range)
-        curr.append(result)
+        if result:
+            curr.append(result)
     if len(curr) > 2:  # get closest -- minimum snippet length
         for i, val in enumerate(sorted(curr, key=lambda x: -len(x))):
             if i > 0:  # keep only the closest value
