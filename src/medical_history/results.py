@@ -89,17 +89,17 @@ class ResultList(MutableSequence):
     def __iadd__(self, other):
         self.data += other
 
-    def iter_included(self):
+    def iter_included(self, *, include_all=False):
         for result in self.data:
-            if result.exclude_flag == ExcludeFlag.INCLUDE:
+            if include_all or result.exclude_flag == ExcludeFlag.INCLUDE:
                 yield result
 
-    def iter_terms(self):
+    def iter_terms(self, *, include_all=False):
         for result in self.data:
-            if result.exclude_flag == ExcludeFlag.INCLUDE:
+            if include_all or result.exclude_flag == ExcludeFlag.INCLUDE:
                 yield from result.terms
 
-    def iter_flags(self):
+    def iter_flags(self, *, include_all=False):
         for result in self.data:
-            if result.exclude_flag == ExcludeFlag.INCLUDE:
+            if include_all or result.exclude_flag == ExcludeFlag.INCLUDE:
                 yield result.medical_history_flag

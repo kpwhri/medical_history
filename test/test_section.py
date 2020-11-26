@@ -6,14 +6,14 @@ def test_family_history_section():
     text = 'Review of patient\'s family history indicates: PCOS daughter'
     results = get_medical_history(text, 'pcos')
     assert set(results.iter_flags()) == {MedicalHistoryFlag.FAMILY, MedicalHistoryFlag.DEGREE1}
-    assert set(results.iter_terms()) == {'pcos', 'family history indicates:', 'daughter'}
+    assert set(results.iter_terms(include_all=True)) == {'pcos', 'family history', 'daughter'}
 
 
 def test_family_history_section_difficult():
     text = 'Review of patient\'s family history indicates:\n asthma daughter\n pcos aunt'
     results = get_medical_history(text, 'pcos')
     assert set(results.iter_flags()) == {MedicalHistoryFlag.FAMILY, MedicalHistoryFlag.DEGREE2}
-    assert set(results.iter_terms()) == {'pcos', 'family history indicates:', 'aunt'}
+    assert set(results.iter_terms()) == {'pcos', 'aunt'}
 
 
 def test_personal_history_section_intervening_section():

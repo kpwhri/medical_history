@@ -307,6 +307,8 @@ def _find_history_in_section(result: Result, start_first, end_first, start_secon
         result.exclude_flag = ExcludeFlag.DIFFERENT_SENTENCE
     elif _contains_separators(text[end_first + 2: start_second], section_seps):
         result.exclude_flag = ExcludeFlag.DIFFERENT_SECTION
+    elif _contains_separators(text[end_first: start_second], '\n'):
+        result.exclude_flag = ExcludeFlag.DIFFERENT_SECTION
     elif _span_is_not_relevant(text[end_first: start_second]):
         result.exclude_flag = ExcludeFlag.NOT_RELEVANT
 
