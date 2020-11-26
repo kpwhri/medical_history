@@ -51,7 +51,7 @@ def test_medical_history(text, exp_flag, exp_data):
 @pytest.mark.parametrize(('text', 'exp_flag', 'exp_data'), [
     ('HISTORY: E28.2-Polycystic ovarian',
      MedicalHistoryFlag.PERSONAL,
-     {'e28.2', 'history', 'polycystic ovarian', 'history'}
+     {'e28.2', 'history', 'polycystic ovarian', 'history:'}
      ),
 ])
 def test_medical_history_dx_code(text, exp_flag, exp_data):
