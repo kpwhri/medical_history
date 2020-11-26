@@ -94,10 +94,12 @@ class ResultList(MutableSequence):
             if include_all or result.exclude_flag == ExcludeFlag.INCLUDE:
                 yield result
 
-    def iter_terms(self, *, include_all=False):
+    def iter_terms(self, *, include_all=False, include_section=False):
         for result in self.data:
             if include_all or result.exclude_flag == ExcludeFlag.INCLUDE:
                 yield from result.terms
+            if result.section and (include_all or include_section):
+                yield result.section
 
     def iter_flags(self, *, include_all=False):
         for result in self.data:
